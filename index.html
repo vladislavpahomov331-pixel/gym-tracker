@@ -358,6 +358,13 @@
   .btn.secondary:active {
     background: #333;
   }
+  .btn.success {
+    background: #2a5a2a;
+    color: #a5e5a5;
+  }
+  .btn.success:active {
+    background: #356a35;
+  }
   .btn-row {
     display: flex;
     gap: 8px;
@@ -423,12 +430,6 @@
     width: 100%;
     height: 180px;
   }
-  .graph-empty {
-    text-align: center;
-    color: #444;
-    padding: 40px 0;
-    font-size: 14px;
-  }
   .graph-stats {
     display: flex;
     gap: 16px;
@@ -493,7 +494,7 @@
   /* TOAST */
   .toast {
     position: fixed;
-    bottom: calc(20px + env(safe-area-inset-bottom));
+    bottom: calc(90px + env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%) translateY(100px);
     background: #2a2a2a;
@@ -506,6 +507,7 @@
     z-index: 1000;
     pointer-events: none;
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    white-space: nowrap;
   }
   .toast.show {
     transform: translateX(-50%) translateY(0);
@@ -566,7 +568,7 @@ const TRAININGS = {
   }
 };
 
-const DEFAULT_REST_SECONDS = 90; // Таймер отдыха по умолчанию
+const DEFAULT_REST_SECONDS = 90;
 
 // ============================================================
 // STORAGE
@@ -596,11 +598,9 @@ let state = {
   screen: 'home',
   training: null,
   exerciseIndex: null,
-  tab: 'workout',
-  currentSets: []
+  tab: 'workout'
 };
 
-// Таймеры
 let workoutTimerInterval = null;
 let restTimerInterval = null;
 let restSecondsLeft = 0;
@@ -629,7 +629,7 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+  setTimeout(() => t.classList.remove('show'), 2200);
 }
 
 function lastWorkout(training) {
@@ -664,7 +664,6 @@ function getOrCreateWorkout(training) {
     DB.workouts.push(w);
     saveData(DB);
   }
-  // На всякий случай добавляем startedAt, если его нет
   if (!w.startedAt) {
     w.startedAt = Date.now();
     saveData(DB);
@@ -691,11 +690,9 @@ function stopWorkoutTimer() {
 function updateWorkoutTimer() {
   const el = document.getElementById('workout-timer-val');
   if (!el) return;
-  
   if (!state.training) return;
   const w = currentWorkout(state.training);
   if (!w || !w.startedAt) return;
-  
   const elapsed = Math.floor((Date.now() - w.startedAt) / 1000);
   el.textContent = formatTime(elapsed);
 }
@@ -717,7 +714,6 @@ function startRestTimer(seconds) {
     if (restSecondsLeft <= 0) {
       stopRestTimer();
       showToast('Отдых закончен 💪');
-      // Вибрация (если поддерживается)
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       return;
     }
@@ -730,7 +726,8 @@ function stopRestTimer() {
     clearInterval(restTimerInterval);
     restTimerInterval = null;
   }
-  document.getElementById('restTimer').classList.remove('show');
+  const el = document.getElementById('restTimer');
+  if (el) el.classList.remove('show');
 }
 
 // ============================================================
@@ -747,6 +744,8 @@ function render() {
     startWorkoutTimer();
   } else if (state.screen === 'exercise') {
     app.innerHTML = renderExercise();
+    // Таймер тренировки продолжает тикать в фоне
+    if (!workoutTimerInterval && state.training) startWorkoutTimer();
   }
 }
 
@@ -841,7 +840,7 @@ function renderExercise() {
   const lastRec = lastExerciseRecord(state.training, state.exerciseIndex);
   const lastSets = lastRec ? lastRec.exercises[state.exerciseIndex].sets : [];
   
-  // Автоподстановка: если текущих подходов нет, но есть прошлые — подставляем
+  // Автоподстановка
   if (rec.sets.length === 0 && lastSets.length > 0) {
     rec.sets = lastSets.map(s => ({ weight: s.weight, reps: s.reps }));
     saveData(DB);
@@ -899,7 +898,10 @@ function renderExercise() {
         <button class="btn secondary" onclick="addSet()">+ Добавить</button>
       </div>
       <div class="btn-row">
-        <button class="btn" onclick="saveExercise()">Сохранить</button>
+        <button class="btn success" onclick="saveSet()">✅ Сохранить подход</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="finishExercise()">🏁 Завершить упражнение</button>
       </div>
       
       <div class="section-title">Заметка</div>
@@ -1132,18 +1134,33 @@ function saveNote() {
   showToast('Заметка сохранена 📝');
 }
 
-function saveExercise() {
+// Сохранить подход (остаться в упражнении)
+function saveSet() {
   const workout = getOrCreateWorkout(state.training);
   const rec = workout.exercises[state.exerciseIndex];
   
-  const validSets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
-  rec.sets = validSets;
+  // Убираем пустые подходы
+  rec.sets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
   saveData(DB);
   
-  // Запускаем таймер отдыха
   startRestTimer(DEFAULT_REST_SECONDS);
+  showToast('Подход сохранён ✓ Отдых пошёл');
   
-  showToast('Сохранено ✓ Запущен отдых');
+  // Обновляем экран, оставаясь в упражнении
+  render();
+}
+
+// Завершить упражнение (сохранить всё и выйти)
+function finishExercise() {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  
+  // Убираем пустые подходы
+  rec.sets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
+  saveData(DB);
+  
+  stopRestTimer();
+  showToast('Упражнение завершено ✓');
   backToTraining();
 }
 
