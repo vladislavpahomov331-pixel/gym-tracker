@@ -1098,4 +1098,614 @@ function renderWorkoutsTab(streak) {
     
     let lastText = 'Ещё не было';
     if (last) {
-     
+      lastText = `Последняя: ${humanDaysAgo(last.date)}`;
+    }
+    
+    html += `
+      <div class="training-card" onclick="openTraining('${key}')">
+        <div class="label">${key}</div>
+        <div class="name">${t.name}</div>
+        <div class="count">${t.exercises.length} упражнений</div>
+        <div class="last">${inProgress ? '⚡ В процессе' : lastText}</div>
+      </div>
+    `;
+  }
+  
+  html += `</div>`;
+  return html;
+}
+
+// ---------- TAB 2: HISTORY ----------
+function renderHistoryTab() {
+  const finished = DB.workouts
+    .filter(w => w.finished || (w.exercises && w.exercises.some(e => e.sets && e.sets.length > 0)))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  
+  if (finished.length === 0) {
+    return `<div class="content"><div class="empty"><div class="icon">📊</div><div class="text">Ещё нет завершённых тренировок</div></div></div>`;
+  }
+  
+  let html = `<div class="content">`;
+  
+  finished.forEach(w => {
+    const isExpanded = state.expandedWorkouts[w.id];
+    const t = TRAININGS[w.training];
+    const doneEx = w.exercises.filter(e => e.sets && e.sets.length > 0).length;
+    const skippedEx = w.exercises.filter(e => e.skipped).length;
+    const dur = w.duration ? formatTime(w.duration) : '—';
+    
+    html += `
+      <div class="history-workout ${isExpanded ? 'expanded' : ''}">
+        <div class="history-workout-header" onclick="toggleWorkoutExpand(${w.id})">
+          <div class="badge">${w.training}</div>
+          <div class="meta">
+            <div class="title">${t.name}</div>
+            <div class="sub">${formatDate(w.date)} · ${dur} · ${doneEx} упр.${skippedEx > 0 ? ` · ${skippedEx} проп.` : ''}</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+        <div class="history-workout-body">
+    `;
+    
+    w.exercises.forEach(ex => {
+      const hasSets = ex.sets && ex.sets.length > 0;
+      if (!hasSets && !ex.skipped) return;
+      
+      html += `
+        <div class="history-ex">
+          <div class="name ${ex.skipped ? 'skipped' : ''}">${ex.name}</div>
+          <div class="sets">
+            ${ex.skipped 
+              ? `<div class="set-chip skipped">пропущено</div>` 
+              : ex.sets.map(s => `<div class="set-chip">${s.weight} × ${s.reps}</div>`).join('')
+            }
+          </div>
+          ${ex.note ? `<div class="note">📝 ${ex.note}</div>` : ''}
+        </div>
+      `;
+    });
+    
+    html += `
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  return html;
+}
+
+function toggleWorkoutExpand(id) {
+  state.expandedWorkouts[id] = !state.expandedWorkouts[id];
+  render();
+}
+
+// ---------- TAB 3: GRAPHS ----------
+function renderGraphsTab() {
+  const all = allExercises();
+  const selected = state.selectedExercise;
+  
+  let html = `<div class="content">`;
+  
+  // Селектор упражнения
+  html += `
+    <div class="graph-selector" onclick="togglePicker()">
+      <span class="${selected ? 'val' : 'placeholder'}">
+        ${selected ? selected.name : 'Выбери упражнение'}
+      </span>
+      <span>${state.pickerOpen ? '▲' : '▼'}</span>
+    </div>
+  `;
+  
+  if (state.pickerOpen) {
+    html += `<div class="exercise-picker show">`;
+    for (const key of ['A', 'B', 'D']) {
+      html += `<div class="picker-group-title">Тренировка ${key} — ${TRAININGS[key].name}</div>`;
+      TRAININGS[key].exercises.forEach(name => {
+        const isSel = selected && selected.name === name && selected.training === key;
+        html += `
+          <div class="picker-item ${isSel ? 'selected' : ''}" onclick="selectExercise('${key}', '${name.replace(/'/g, "\\'")}')">
+            ${name}
+          </div>
+        `;
+      });
+    }
+    html += `</div>`;
+  }
+  
+  // График
+  if (selected) {
+    html += renderExerciseGraph(selected.training, selected.name);
+  } else {
+    html += `<div class="empty"><div class="icon">📈</div><div class="text">Выбери упражнение, чтобы увидеть прогресс</div></div>`;
+  }
+  
+  html += `</div>`;
+  return html;
+}
+
+function renderExerciseGraph(training, exName) {
+  const all = DB.workouts
+    .filter(w => w.training === training && w.exercises)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  
+  const points = [];
+  all.forEach(w => {
+    const ex = w.exercises.find(e => e.name === exName);
+    if (ex && ex.sets && ex.sets.length > 0) {
+      const maxW = Math.max(...ex.sets.map(s => parseFloat(s.weight) || 0));
+      if (maxW > 0) points.push({ date: w.date, value: maxW });
+    }
+  });
+  
+  if (points.length < 2) {
+    return `<div class="empty"><div class="icon">📈</div><div class="text">Нужно минимум 2 тренировки с этим упражнением</div></div>`;
+  }
+  
+  const maxV = Math.max(...points.map(p => p.value));
+  const minV = Math.min(...points.map(p => p.value));
+  const range = maxV - minV || 1;
+  
+  const W = 300;
+  const H = 180;
+  const padX = 10;
+  const padY = 20;
+  const graphW = W - padX * 2;
+  const graphH = H - padY * 2;
+  
+  const coords = points.map((p, i) => {
+    const x = padX + (i / (points.length - 1)) * graphW;
+    const y = padY + graphH - ((p.value - minV) / range) * graphH;
+    return { x, y, ...p };
+  });
+  
+  const pathD = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
+  
+  let svg = `<svg class="graph-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+  
+  for (let i = 0; i <= 4; i++) {
+    const y = padY + (i / 4) * graphH;
+    svg += `<line x1="${padX}" y1="${y}" x2="${W-padX}" y2="${y}" stroke="#262626" stroke-width="1"/>`;
+  }
+  
+  svg += `<path d="${pathD}" fill="none" stroke="#4a9eff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  
+  coords.forEach(c => {
+    svg += `<circle cx="${c.x}" cy="${c.y}" r="4" fill="#4a9eff"/>`;
+  });
+  
+  svg += `</svg>`;
+  
+  const first = points[0].value;
+  const last = points[points.length - 1].value;
+  const diff = last - first;
+  const diffText = diff > 0 ? `+${diff}` : `${diff}`;
+  
+  return `
+    <div class="graph-container">
+      <div class="graph-title">Максимальный вес по тренировкам</div>
+      ${svg}
+      <div class="graph-stats">
+        <div class="stat">
+          <div class="stat-label">Сейчас</div>
+          <div class="stat-value">${last} кг</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Прогресс</div>
+          <div class="stat-value" style="color:${diff >= 0 ? '#4a9eff' : '#ff6b6b'}">${diffText} кг</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Тренировок</div>
+          <div class="stat-value">${points.length}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function togglePicker() {
+  state.pickerOpen = !state.pickerOpen;
+  render();
+}
+
+function selectExercise(training, name) {
+  state.selectedExercise = { training, name };
+  state.pickerOpen = false;
+  render();
+}
+
+// ---------- TRAINING SCREEN ----------
+function renderTraining() {
+  const t = TRAININGS[state.training];
+  const workout = getOrCreateWorkout(state.training);
+  
+  const sorted = [...workout.exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
+  
+  let html = `
+    <div class="header">
+      <button class="back-btn visible" onclick="goHome()">‹ Назад</button>
+      <div style="flex:1">
+        <h1>Тренировка ${state.training}</h1>
+        <div class="sub">${t.name}</div>
+      </div>
+    </div>
+    <div class="workout-timer">
+      <span>⏱ Время тренировки</span>
+      <span class="val" id="workout-timer-val">00:00</span>
+    </div>
+    <div class="content">
+  `;
+  
+  sorted.forEach((ex, displayIndex) => {
+    const rec = ex;
+    const done = rec.sets && rec.sets.length > 0;
+    const isSkipped = rec.skipped;
+    
+    const lastRec = lastExerciseRecord(state.training, rec.name);
+    let prevText = 'Нет данных';
+    if (lastRec) {
+      prevText = lastRec.exercise.sets.map(s => `${s.weight}×${s.reps}`).join(', ');
+    }
+    
+    const realIndex = workout.exercises.indexOf(rec);
+    const canMoveUp = displayIndex > 0;
+    const canMoveDown = displayIndex < sorted.length - 1;
+    
+    let numBg = '#262626';
+    let numColor = '#888';
+    let numText = displayIndex + 1;
+    
+    if (done) {
+      numBg = '#4a9eff';
+      numColor = '#fff';
+      numText = '✓';
+    }
+    if (isSkipped) {
+      numBg = '#3a2a1a';
+      numColor = '#ff9500';
+      numText = '−';
+    }
+    
+    html += `
+      <div class="exercise-wrapper">
+        <div class="exercise-item ${isSkipped ? 'skipped' : ''}">
+          <div class="num" style="background:${numBg};color:${numColor}">${numText}</div>
+          <div class="info" onclick="openExercise(${realIndex})">
+            <div class="ex-name">${rec.name}</div>
+            <div class="ex-prev">${prevText}</div>
+          </div>
+          <div class="move-btns">
+            <button class="move-btn" onclick="event.stopPropagation(); moveExercise(${realIndex}, -1)" ${canMoveUp ? '' : 'disabled'}>↑</button>
+            <button class="move-btn" onclick="event.stopPropagation(); moveExercise(${realIndex}, 1)" ${canMoveDown ? '' : 'disabled'}>↓</button>
+          </div>
+          <button class="skip-btn" onclick="event.stopPropagation(); toggleSkip(${realIndex})">${isSkipped ? '↺' : '−'}</button>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+      <div class="btn-row">
+        <button class="btn secondary" onclick="finishWorkout()">Завершить тренировку</button>
+      </div>
+    </div>
+  `;
+  
+  return html;
+}
+
+function renderExercise() {
+  const t = TRAININGS[state.training];
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  const exName = rec.name;
+  
+  const lastRec = lastExerciseRecord(state.training, exName);
+  const lastSets = lastRec ? lastRec.exercise.sets : [];
+  
+  if (rec.sets.length === 0 && lastSets.length > 0) {
+    rec.sets = lastSets.map(s => ({ weight: s.weight, reps: s.reps }));
+    saveData(DB);
+  }
+  
+  const currentSets = rec.sets.length > 0 ? rec.sets : [{weight:'', reps:''}];
+  
+  let html = `
+    <div class="header">
+      <button class="back-btn visible" onclick="backToTraining()">‹ Назад</button>
+      <h1 style="font-size:16px">${exName}</h1>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('workout')">Тренировка</div>
+      <div class="tab" onclick="switchTab('history')">История</div>
+      <div class="tab" onclick="switchTab('graph')">График</div>
+    </div>
+    <div class="content">
+  `;
+  
+  if (state.tab === 'workout') {
+    html += `
+      <div class="section-title">Прошлая тренировка</div>
+      <div class="sets-header">
+        <div>#</div>
+        <div>Вес (кг)</div>
+        <div>Повторы</div>
+      </div>
+    `;
+    
+    if (lastSets.length === 0) {
+      html += `<div style="text-align:center;color:#444;padding:20px;font-size:14px">Нет данных</div>`;
+    } else {
+      lastSets.forEach((s, i) => {
+        html += `
+          <div class="set-row">
+            <div class="set-num">${i+1}</div>
+            <input class="set-input prev" type="number" value="${s.weight}" disabled>
+            <input class="set-input prev" type="number" value="${s.reps}" disabled>
+          </div>
+        `;
+      });
+    }
+    
+    html += `
+      <div class="section-title">Эта тренировка</div>
+      <div class="sets-header">
+        <div>#</div>
+        <div>Вес (кг)</div>
+        <div>Повторы</div>
+      </div>
+      <div id="current-sets"></div>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="removeSet()">− Убрать</button>
+        <button class="btn secondary" onclick="addSet()">+ Добавить</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn success" onclick="saveSet()">✅ Сохранить подход</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="finishExercise()">🏁 Завершить упражнение</button>
+      </div>
+      
+      <div class="section-title">Заметка</div>
+      <textarea class="notes-input" id="notes-input" 
+                placeholder="Как прошло? Что запомнить?"
+                oninput="updateNote(this.value)">${rec.note || ''}</textarea>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="saveNote()">Сохранить заметку</button>
+      </div>
+    `;
+  } else if (state.tab === 'history') {
+    html += renderExerciseHistory(exName);
+  } else if (state.tab === 'graph') {
+    html += renderExerciseGraph(state.training, exName);
+  }
+  
+  html += `</div>`;
+  
+  setTimeout(() => {
+    if (state.tab === 'workout') renderCurrentSets(currentSets);
+  }, 0);
+  
+  return html;
+}
+
+function renderCurrentSets(sets) {
+  const container = document.getElementById('current-sets');
+  if (!container) return;
+  
+  let html = '';
+  sets.forEach((s, i) => {
+    html += `
+      <div class="set-row">
+        <div class="set-num">${i+1}</div>
+        <input class="set-input current" type="number" inputmode="decimal" 
+               value="${s.weight}" placeholder="—" 
+               oninput="updateSet(${i}, 'weight', this.value)">
+        <input class="set-input current" type="number" inputmode="numeric" 
+               value="${s.reps}" placeholder="—" 
+               oninput="updateSet(${i}, 'reps', this.value)">
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function renderExerciseHistory(exName) {
+  const all = DB.workouts
+    .filter(w => w.training === state.training && w.exercises)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  
+  const history = [];
+  all.forEach(w => {
+    const ex = w.exercises.find(e => e.name === exName);
+    if (ex && ex.sets && ex.sets.length > 0) {
+      history.push({ date: w.date, sets: ex.sets, note: ex.note });
+    }
+  });
+  
+  if (history.length === 0) {
+    return `<div class="empty"><div class="icon">📊</div><div class="text">Нет данных</div></div>`;
+  }
+  
+  let html = '';
+  history.forEach(h => {
+    html += `
+      <div class="history-item">
+        <div class="date">${formatDate(h.date)}</div>
+        <div class="sets">
+          ${h.sets.map(s => `<div class="set-chip">${s.weight} × ${s.reps}</div>`).join('')}
+        </div>
+        ${h.note ? `<div class="note">📝 ${h.note}</div>` : ''}
+      </div>
+    `;
+  });
+  return html;
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+function switchMainTab(tab) {
+  state.mainTab = tab;
+  state.pickerOpen = false;
+  render();
+}
+
+function openTraining(key) {
+  state.training = key;
+  state.screen = 'training';
+  render();
+}
+
+function goHome() {
+  state.screen = 'home';
+  state.training = null;
+  state.exerciseIndex = null;
+  state.tab = 'workout';
+  stopWorkoutTimer();
+  stopRestTimer();
+  render();
+}
+
+function openExercise(index) {
+  state.exerciseIndex = index;
+  state.screen = 'exercise';
+  state.tab = 'workout';
+  render();
+}
+
+function backToTraining() {
+  state.screen = 'training';
+  state.exerciseIndex = null;
+  state.tab = 'workout';
+  render();
+}
+
+function switchTab(tab) {
+  state.tab = tab;
+  render();
+}
+
+function addSet() {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  if (rec.sets.length === 0) {
+    rec.sets.push({weight:'', reps:''});
+  }
+  rec.sets.push({weight:'', reps:''});
+  saveData(DB);
+  render();
+}
+
+function removeSet() {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  if (rec.sets.length > 1) {
+    rec.sets.pop();
+    saveData(DB);
+  }
+  render();
+}
+
+function updateSet(index, field, value) {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  if (!rec.sets[index]) rec.sets[index] = {weight:'', reps:''};
+  rec.sets[index][field] = value;
+  saveData(DB);
+}
+
+function updateNote(value) {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  rec.note = value;
+  saveData(DB);
+}
+
+function saveNote() {
+  showToast('Заметка сохранена 📝');
+}
+
+function saveSet() {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  
+  rec.sets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
+  saveData(DB);
+  
+  startRestTimer(DEFAULT_REST_SECONDS);
+  showToast('Подход сохранён ✓ Отдых пошёл');
+  
+  render();
+}
+
+function finishExercise() {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  
+  rec.sets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
+  saveData(DB);
+  
+  stopRestTimer();
+  showToast('Упражнение завершено ✓');
+  backToTraining();
+}
+
+function moveExercise(realIndex, direction) {
+  const workout = getOrCreateWorkout(state.training);
+  const exercises = workout.exercises;
+  
+  const sorted = [...exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const currentPos = sorted.indexOf(exercises[realIndex]);
+  const swapPos = currentPos + direction;
+  
+  if (swapPos < 0 || swapPos >= sorted.length) return;
+  
+  const other = sorted[swapPos];
+  const currentOrder = exercises[realIndex].order || 0;
+  const otherOrder = other.order || 0;
+  
+  exercises[realIndex].order = otherOrder;
+  other.order = currentOrder;
+  
+  saveData(DB);
+  render();
+}
+
+function toggleSkip(realIndex) {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[realIndex];
+  rec.skipped = !rec.skipped;
+  saveData(DB);
+  render();
+}
+
+function finishWorkout() {
+  const workout = getOrCreateWorkout(state.training);
+  const done = workout.exercises.filter(e => e.sets.length > 0 || e.skipped).length;
+  
+  if (done === 0) {
+    showToast('Нет сохранённых упражнений');
+    return;
+  }
+  
+  const elapsed = workout.startedAt ? Math.floor((Date.now() - workout.startedAt) / 1000) : 0;
+  workout.duration = elapsed;
+  workout.finished = true;
+  workout.finishedAt = Date.now();
+  saveData(DB);
+  
+  stopWorkoutTimer();
+  stopRestTimer();
+  
+  showToast(`Тренировка завершена! Время: ${formatTime(elapsed)}`);
+  setTimeout(goHome, 1500);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+render();
+</script>
+</body>
+</html>
