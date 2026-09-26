@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gym">
+<title>Gym Tracker</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0a0a;
+    color: #e5e5e5;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+  .app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: #141414;
+    border-bottom: 1px solid #222;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .back-btn {
+    background: none;
+    border: none;
+    color: #4a9eff;
+    font-size: 16px;
+    padding: 4px 8px;
+    cursor: pointer;
+    display: none;
+    font-weight: 500;
+  }
+  .back-btn.visible {
+    display: block;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    flex: 1;
+  }
+  .header .sub {
+    font-size: 12px;
+    color: #888;
+    font-weight: 400;
+  }
+  
+  /* CONTENT */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+  }
+  
+  /* TRAINING CARDS */
+  .training-card {
+    background: #1a1a1a;
+    border: 1px solid #262626;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .training-card:active {
+    background: #222;
+    transform: scale(0.98);
+  }
+  .training-card .label {
+    font-size: 28px;
+    font-weight: 800;
+    color: #4a9eff;
+    margin-bottom: 4px;
+  }
+  .training-card .name {
+    font-size: 15px;
+    color: #e5e5e5;
+    margin-bottom: 8px;
+  }
+  .training-card .count {
+    font-size: 13px;
+    color: #666;
+  }
+  .training-card .last {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #262626;
+  }
+  
+  /* EXERCISE LIST */
+  .exercise-item {
+    display: flex;
+    align-items: center;
+    background: #1a1a1a;
+    border: 1px solid #262626;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    gap: 12px;
+  }
+  .exercise-item:active {
+    background: #222;
+    transform: scale(0.98);
+  }
+  .exercise-item .num {
+    width: 28px;
+    height: 28px;
+    background: #262626;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    flex-shrink: 0;
+  }
+  .exercise-item .info {
+    flex: 1;
+    min-width: 0;
+  }
+  .exercise-item .ex-name {
+    font-size: 15px;
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .exercise-item .ex-prev {
+    font-size: 12px;
+    color: #666;
+  }
+  .exercise-item .arrow {
+    color: #444;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  
+  /* SETS TABLE */
+  .sets-header {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr;
+    gap: 8px;
+    padding: 0 4px 8px 4px;
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .sets-header > div {
+    text-align: center;
+  }
+  .set-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .set-num {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    font-weight: 600;
+  }
+  .set-input {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 12px 8px;
+    font-size: 16px;
+    color: #fff;
+    text-align: center;
+    font-weight: 600;
+    width: 100%;
+    -webkit-appearance: none;
+    font-family: inherit;
+  }
+  .set-input:focus {
+    outline: none;
+    border-color: #4a9eff;
+    background: #1f1f1f;
+  }
+  .set-input::-webkit-outer-spin-button,
+  .set-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .set-input[type=number] {
+    -moz-appearance: textfield;
+  }
+  .set-input.prev {
+    color: #666;
+    background: #141414;
+    border-color: #1f1f1f;
+  }
+  .set-input.prev::placeholder {
+    color: #444;
+  }
+  .set-input.current {
+    color: #fff;
+  }
+  
+  .section-title {
+    font-size: 13px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin: 20px 0 12px 4px;
+  }
+  .section-title:first-child {
+    margin-top: 0;
+  }
+  
+  /* BUTTONS */
+  .btn {
+    background: #4a9eff;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn:active {
+    background: #3a8eef;
+    transform: scale(0.98);
+  }
+  .btn.secondary {
+    background: #262626;
+    color: #e5e5e5;
+  }
+  .btn.secondary:active {
+    background: #333;
+  }
+  .btn.danger {
+    background: #3a1a1a;
+    color: #ff6b6b;
+  }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .btn-row .btn {
+    flex: 1;
+  }
+  
+  /* HISTORY */
+  .history-item {
+    background: #1a1a1a;
+    border: 1px solid #262626;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 8px;
+  }
+  .history-item .date {
+    font-size: 13px;
+    color: #4a9eff;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .history-item .sets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .history-item .set-chip {
+    background: #262626;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: #e5e5e5;
+    font-weight: 500;
+  }
+  .history-item .set-chip.empty {
+    color: #444;
+  }
+  
+  /* GRAPH */
+  .graph-container {
+    background: #1a1a1a;
+    border: 1px solid #262626;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .graph-title {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .graph-svg {
+    width: 100%;
+    height: 180px;
+  }
+  .graph-empty {
+    text-align: center;
+    color: #444;
+    padding: 40px 0;
+    font-size: 14px;
+  }
+  .graph-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #262626;
+  }
+  .graph-stats .stat {
+    flex: 1;
+  }
+  .graph-stats .stat-label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .graph-stats .stat-value {
+    font-size: 18px;
+    color: #fff;
+    font-weight: 700;
+  }
+  
+  /* TABS */
+  .tabs {
+    display: flex;
+    background: #141414;
+    border-bottom: 1px solid #222;
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    color: #4a9eff;
+    border-bottom-color: #4a9eff;
+  }
+  
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #444;
+  }
+  .empty .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  .empty .text {
+    font-size: 15px;
+  }
+  
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #2a2a2a;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: transform 0.3s;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+  
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 2000;
+  }
+  .modal-overlay.show {
+    display: flex;
+  }
+  .modal {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 400px;
+    width: 100%;
+  }
+  .modal h3 {
+    color: #fff;
+    font-size: 17px;
+    margin-bottom: 16px;
+  }
+  .modal p {
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .modal input {
+    background: #262626;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px;
+    color: #fff;
+    font-size: 15px;
+    width: 100%;
+    margin-bottom: 16px;
+    font-family: inherit;
+  }
+  .modal input:focus {
+    outline: none;
+    border-color: #4a9eff;
+  }
+  .modal-btns {
+    display: flex;
+    gap: 8px;
+  }
+  .modal-btns .btn {
+    flex: 1;
+  }
+  
+  /* LOADING */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast" id="toast"></div>
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <p id="modal-text"></p>
+    <input id="modal-input" type="number" inputmode="numeric" style="display:none;">
+    <div class="modal-btns">
+      <button class="btn secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn" id="modal-confirm">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const TRAININGS = {
+  A: {
+    name: 'Грудь, бицепс',
+    exercises: [
+      'Жим от груди',
+      'Жим в Хаммере',
+      'Жим в наклонной скамье',
+      'Бабочка',
+      'Подъём EZ-штанги на бицепс',
+      'Подъём на бицепс на скамье',
+      'Скамья Скотта'
+    ]
+  },
+  B: {
+    name: 'Спина, трицепс',
+    exercises: [
+      'Подтягивания с резинкой',
+      'Тяга верхнего блока',
+      'Тяга в тренажёре',
+      'Тяга на середину спины в тренажёре',
+      'Французский жим из-за головы',
+      'Трицепс в кроссовере',
+      'Гиперэкстензия'
+    ]
+  },
+  D: {
+    name: 'Ноги, плечи',
+    exercises: [
+      'Жим платформы',
+      'Разгибание ног сидя',
+      'Разгибание ног лёжа',
+      'Армейский жим в тренажёре',
+      'Разведение в кроссовере на заднюю дельту',
+      'Разведение в кроссовере на среднюю дельту',
+      'Махи гантелей в стороны'
+    ]
+  }
+};
+
+// ============================================================
+// STORAGE
+// ============================================================
+const STORAGE_KEY = 'gym_tracker_data';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { workouts: [] };
+    return JSON.parse(raw);
+  } catch(e) {
+    return { workouts: [] };
+  }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let DB = loadData();
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  screen: 'home',      // home | training | exercise | history | graph
+  training: null,       // 'A' | 'B' | 'D'
+  exerciseIndex: null,
+  tab: 'workout',       // workout | history | graph
+  currentSets: []       // [{weight, reps}, ...]
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDate(iso) {
+  const [y, m, d] = iso.split('-');
+  const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// Найти последнюю тренировку типа training
+function lastWorkout(training) {
+  const filtered = DB.workouts
+    .filter(w => w.training === training)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return filtered[0] || null;
+}
+
+// Найти последнюю запись для конкретного упражнения
+function lastExerciseRecord(training, exerciseIndex) {
+  const filtered = DB.workouts
+    .filter(w => w.training === training && w.exercises[exerciseIndex] && w.exercises[exerciseIndex].sets && w.exercises[exerciseIndex].sets.length > 0)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return filtered[0] || null;
+}
+
+// Получить текущую тренировку (если уже начата сегодня)
+function currentWorkout(training) {
+  const t = today();
+  return DB.workouts.find(w => w.training === training && w.date === t);
+}
+
+// Создать или получить текущую тренировку
+function getOrCreateWorkout(training) {
+  let w = currentWorkout(training);
+  if (!w) {
+    w = {
+      id: Date.now(),
+      training: training,
+      date: today(),
+      exercises: TRAININGS[training].exercises.map(() => ({ sets: [] }))
+    };
+    DB.workouts.push(w);
+    saveData(DB);
+  }
+  return w;
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  const app = document.getElementById('app');
+  
+  if (state.screen === 'home') {
+    app.innerHTML = renderHome();
+  } else if (state.screen === 'training') {
+    app.innerHTML = renderTraining();
+  } else if (state.screen === 'exercise') {
+    app.innerHTML = renderExercise();
+  }
+}
+
+function renderHome() {
+  let html = `
+    <div class="header">
+      <h1>Gym Tracker</h1>
+    </div>
+    <div class="content">
+      <div class="section-title">Выбери тренировку</div>
+  `;
+  
+  for (const key of ['A', 'B', 'D']) {
+    const t = TRAININGS[key];
+    const last = lastWorkout(key);
+    const lastText = last ? `Последняя: ${formatDate(last.date)}` : 'Ещё не было';
+    const inProgress = currentWorkout(key);
+    
+    html += `
+      <div class="training-card" onclick="openTraining('${key}')">
+        <div class="label">${key}</div>
+        <div class="name">${t.name}</div>
+        <div class="count">${t.exercises.length} упражнений</div>
+        <div class="last">${inProgress ? '⚡ В процессе' : lastText}</div>
+      </div>
+    `;
+  }
+  
+  html += `</div>`;
+  return html;
+}
+
+function renderTraining() {
+  const t = TRAININGS[state.training];
+  const workout = getOrCreateWorkout(state.training);
+  
+  let html = `
+    <div class="header">
+      <button class="back-btn visible" onclick="goHome()">‹ Назад</button>
+      <div style="flex:1">
+        <h1>Тренировка ${state.training}</h1>
+        <div class="sub">${t.name}</div>
+      </div>
+    </div>
+    <div class="content">
+  `;
+  
+  t.exercises.forEach((ex, i) => {
+    const rec = workout.exercises[i];
+    const done = rec.sets && rec.sets.length > 0;
+    
+    // Прошлая запись
+    const lastRec = lastExerciseRecord(state.training, i);
+    let prevText = 'Нет данных';
+    if (lastRec) {
+      const sets = lastRec.exercises[i].sets;
+      prevText = sets.map(s => `${s.weight}×${s.reps}`).join(', ');
+    }
+    
+    html += `
+      <div class="exercise-item" onclick="openExercise(${i})">
+        <div class="num" style="${done ? 'background:#4a9eff;color:#fff' : ''}">${done ? '✓' : i+1}</div>
+        <div class="info">
+          <div class="ex-name">${ex}</div>
+          <div class="ex-prev">${prevText}</div>
+        </div>
+        <div class="arrow">›</div>
+      </div>
+    `;
+  });
+  
+  html += `
+      <div class="btn-row">
+        <button class="btn secondary" onclick="finishWorkout()">Завершить тренировку</button>
+      </div>
+    </div>
+  `;
+  
+  return html;
+}
+
+function renderExercise() {
+  const t = TRAININGS[state.training];
+  const exName = t.exercises[state.exerciseIndex];
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  
+  // Прошлая запись
+  const lastRec = lastExerciseRecord(state.training, state.exerciseIndex);
+  const lastSets = lastRec ? lastRec.exercises[state.exerciseIndex].sets : [];
+  
+  // Текущие подходы
+  const currentSets = rec.sets.length > 0 ? rec.sets : [{weight:'', reps:''}];
+  
+  let html = `
+    <div class="header">
+      <button class="back-btn visible" onclick="backToTraining()">‹ Назад</button>
+      <h1 style="font-size:16px">${exName}</h1>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('workout')">Тренировка</div>
+      <div class="tab" onclick="switchTab('history')">История</div>
+      <div class="tab" onclick="switchTab('graph')">График</div>
+    </div>
+    <div class="content">
+  `;
+  
+  if (state.tab === 'workout') {
+    html += `
+      <div class="section-title">Прошлая тренировка</div>
+      <div class="sets-header">
+        <div>#</div>
+        <div>Вес (кг)</div>
+        <div>Повторы</div>
+      </div>
+    `;
+    
+    if (lastSets.length === 0) {
+      html += `<div style="text-align:center;color:#444;padding:20px;font-size:14px">Нет данных</div>`;
+    } else {
+      lastSets.forEach((s, i) => {
+        html += `
+          <div class="set-row">
+            <div class="set-num">${i+1}</div>
+            <input class="set-input prev" type="number" value="${s.weight}" disabled>
+            <input class="set-input prev" type="number" value="${s.reps}" disabled>
+          </div>
+        `;
+      });
+    }
+    
+    html += `
+      <div class="section-title">Эта тренировка</div>
+      <div class="sets-header">
+        <div>#</div>
+        <div>Вес (кг)</div>
+        <div>Повторы</div>
+      </div>
+      <div id="current-sets"></div>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="removeSet()">− Убрать</button>
+        <button class="btn secondary" onclick="addSet()">+ Добавить</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="saveExercise()">Сохранить</button>
+      </div>
+    `;
+  } else if (state.tab === 'history') {
+    html += renderHistory();
+  } else if (state.tab === 'graph') {
+    html += renderGraph();
+  }
+  
+  html += `</div>`;
+  
+  // После рендера отрисовываем подходы
+  setTimeout(() => {
+    if (state.tab === 'workout') renderCurrentSets(currentSets);
+  }, 0);
+  
+  return html;
+}
+
+function renderCurrentSets(sets) {
+  const container = document.getElementById('current-sets');
+  if (!container) return;
+  
+  let html = '';
+  sets.forEach((s, i) => {
+    html += `
+      <div class="set-row">
+        <div class="set-num">${i+1}</div>
+        <input class="set-input current" type="number" inputmode="decimal" 
+               value="${s.weight}" placeholder="—" 
+               oninput="updateSet(${i}, 'weight', this.value)">
+        <input class="set-input current" type="number" inputmode="numeric" 
+               value="${s.reps}" placeholder="—" 
+               oninput="updateSet(${i}, 'reps', this.value)">
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function renderHistory() {
+  const all = DB.workouts
+    .filter(w => w.training === state.training)
+    .filter(w => w.exercises[state.exerciseIndex] && w.exercises[state.exerciseIndex].sets.length > 0)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  
+  if (all.length === 0) {
+    return `<div class="empty"><div class="icon">📊</div><div class="text">Нет данных</div></div>`;
+  }
+  
+  let html = '';
+  all.forEach(w => {
+    const sets = w.exercises[state.exerciseIndex].sets;
+    html += `
+      <div class="history-item">
+        <div class="date">${formatDate(w.date)}</div>
+        <div class="sets">
+          ${sets.map(s => `<div class="set-chip">${s.weight} × ${s.reps}</div>`).join('')}
+        </div>
+      </div>
+    `;
+  });
+  return html;
+}
+
+function renderGraph() {
+  const all = DB.workouts
+    .filter(w => w.training === state.training)
+    .filter(w => w.exercises[state.exerciseIndex] && w.exercises[state.exerciseIndex].sets.length > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  
+  if (all.length < 2) {
+    return `<div class="empty"><div class="icon">📈</div><div class="text">Нужно минимум 2 тренировки</div></div>`;
+  }
+  
+  // Считаем максимальный вес за тренировку
+  const points = all.map(w => {
+    const sets = w.exercises[state.exerciseIndex].sets;
+    const maxW = Math.max(...sets.map(s => parseFloat(s.weight) || 0));
+    return { date: w.date, value: maxW };
+  }).filter(p => p.value > 0);
+  
+  if (points.length < 2) {
+    return `<div class="empty"><div class="icon">📈</div><div class="text">Нет данных о весе</div></div>`;
+  }
+  
+  const maxV = Math.max(...points.map(p => p.value));
+  const minV = Math.min(...points.map(p => p.value));
+  const range = maxV - minV || 1;
+  
+  const W = 300;
+  const H = 180;
+  const padX = 10;
+  const padY = 20;
+  const graphW = W - padX * 2;
+  const graphH = H - padY * 2;
+  
+  const coords = points.map((p, i) => {
+    const x = padX + (i / (points.length - 1)) * graphW;
+    const y = padY + graphH - ((p.value - minV) / range) * graphH;
+    return { x, y, ...p };
+  });
+  
+  const pathD = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
+  
+  let svg = `<svg class="graph-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+  
+  // Сетка
+  for (let i = 0; i <= 4; i++) {
+    const y = padY + (i / 4) * graphH;
+    svg += `<line x1="${padX}" y1="${y}" x2="${W-padX}" y2="${y}" stroke="#262626" stroke-width="1"/>`;
+  }
+  
+  // Линия
+  svg += `<path d="${pathD}" fill="none" stroke="#4a9eff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  
+  // Точки
+  coords.forEach(c => {
+    svg += `<circle cx="${c.x}" cy="${c.y}" r="4" fill="#4a9eff"/>`;
+  });
+  
+  svg += `</svg>`;
+  
+  const first = points[0].value;
+  const last = points[points.length - 1].value;
+  const diff = last - first;
+  const diffText = diff > 0 ? `+${diff}` : `${diff}`;
+  
+  return `
+    <div class="graph-container">
+      <div class="graph-title">Максимальный вес по тренировкам</div>
+      ${svg}
+      <div class="graph-stats">
+        <div class="stat">
+          <div class="stat-label">Сейчас</div>
+          <div class="stat-value">${last} кг</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Прогресс</div>
+          <div class="stat-value" style="color:${diff >= 0 ? '#4a9eff' : '#ff6b6b'}">${diffText} кг</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Тренировок</div>
+          <div class="stat-value">${points.length}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+function openTraining(key) {
+  state.training = key;
+  state.screen = 'training';
+  render();
+}
+
+function goHome() {
+  state.screen = 'home';
+  state.training = null;
+  state.exerciseIndex = null;
+  state.tab = 'workout';
+  render();
+}
+
+function openExercise(index) {
+  state.exerciseIndex = index;
+  state.screen = 'exercise';
+  state.tab = 'workout';
+  render();
+}
+
+function backToTraining() {
+  state.screen = 'training';
+  state.exerciseIndex = null;
+  state.tab = 'workout';
+  render();
+}
+
+function switchTab(tab) {
+  state.tab = tab;
+  render();
+}
+
+function addSet() {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  if (rec.sets.length === 0) {
+    rec.sets.push({weight:'', reps:''});
+  }
+  rec.sets.push({weight:'', reps:''});
+  saveData(DB);
+  render();
+}
+
+function removeSet() {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  if (rec.sets.length > 1) {
+    rec.sets.pop();
+    saveData(DB);
+  }
+  render();
+}
+
+function updateSet(index, field, value) {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  if (!rec.sets[index]) rec.sets[index] = {weight:'', reps:''};
+  rec.sets[index][field] = value;
+  saveData(DB);
+}
+
+function saveExercise() {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  
+  // Фильтруем пустые подходы
+  const validSets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
+  rec.sets = validSets;
+  saveData(DB);
+  
+  showToast('Сохранено ✓');
+  backToTraining();
+}
+
+function finishWorkout() {
+  const workout = getOrCreateWorkout(state.training);
+  const done = workout.exercises.filter(e => e.sets.length > 0).length;
+  
+  if (done === 0) {
+    showToast('Нет сохранённых упражнений');
+    return;
+  }
+  
+  showToast(`Тренировка завершена! Упражнений: ${done}`);
+  setTimeout(goHome, 1000);
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+render();
+</script>
+</body>
+</html>
