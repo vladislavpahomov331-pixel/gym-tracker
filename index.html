@@ -33,7 +33,6 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   
-  /* HEADER */
   .header {
     display: flex;
     align-items: center;
@@ -66,6 +65,27 @@
     font-size: 12px;
     color: #888;
     font-weight: 400;
+  }
+  
+  /* DATE BAR */
+  .date-bar {
+    background: #141414;
+    border-bottom: 1px solid #222;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #888;
+    flex-shrink: 0;
+  }
+  .date-bar .today {
+    color: #e5e5e5;
+    font-weight: 600;
+  }
+  .date-bar .streak {
+    color: #ff9500;
+    font-weight: 700;
   }
   
   /* WORKOUT TIMER */
@@ -141,7 +161,6 @@
     color: #ff6b6b;
   }
   
-  /* CONTENT */
   .content {
     flex: 1;
     overflow-y: auto;
@@ -186,18 +205,20 @@
     border-top: 1px solid #262626;
   }
   
-  /* EXERCISE LIST */
+  /* EXERCISE ITEM */
+  .exercise-wrapper {
+    margin-bottom: 8px;
+  }
   .exercise-item {
     display: flex;
     align-items: center;
     background: #1a1a1a;
     border: 1px solid #262626;
     border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 8px;
+    padding: 12px;
     cursor: pointer;
     transition: all 0.15s;
-    gap: 12px;
+    gap: 10px;
   }
   .exercise-item:active {
     background: #222;
@@ -234,6 +255,56 @@
     color: #444;
     font-size: 18px;
     flex-shrink: 0;
+  }
+  .exercise-item .skip-btn {
+    background: #262626;
+    border: none;
+    color: #888;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+  .exercise-item .skip-btn:active {
+    background: #333;
+  }
+  .exercise-item.skipped {
+    opacity: 0.5;
+  }
+  .exercise-item.skipped .ex-name {
+    text-decoration: line-through;
+    color: #888;
+  }
+  
+  /* MOVE BUTTONS */
+  .move-btns {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .move-btn {
+    background: #262626;
+    border: none;
+    color: #888;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .move-btn:active {
+    background: #333;
+  }
+  .move-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
   }
   
   /* SETS TABLE */
@@ -299,7 +370,6 @@
     color: #fff;
   }
   
-  /* NOTES */
   .notes-input {
     background: #1a1a1a;
     border: 1px solid #2a2a2a;
@@ -333,7 +403,6 @@
     margin-top: 0;
   }
   
-  /* BUTTONS */
   .btn {
     background: #4a9eff;
     color: #fff;
@@ -374,7 +443,6 @@
     flex: 1;
   }
   
-  /* HISTORY */
   .history-item {
     background: #1a1a1a;
     border: 1px solid #262626;
@@ -410,7 +478,6 @@
     font-style: italic;
   }
   
-  /* GRAPH */
   .graph-container {
     background: #1a1a1a;
     border: 1px solid #262626;
@@ -453,7 +520,6 @@
     font-weight: 700;
   }
   
-  /* TABS */
   .tabs {
     display: flex;
     background: #141414;
@@ -476,7 +542,6 @@
     border-bottom-color: #4a9eff;
   }
   
-  /* EMPTY STATE */
   .empty {
     text-align: center;
     padding: 60px 20px;
@@ -491,7 +556,6 @@
     font-size: 15px;
   }
   
-  /* TOAST */
   .toast {
     position: fixed;
     bottom: calc(90px + env(safe-area-inset-bottom));
@@ -625,6 +689,32 @@ function formatTime(seconds) {
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
+// Дата в стиле "Понедельник, 26 сентября"
+function todayLong() {
+  const d = new Date();
+  const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+// Сколько дней прошло между датами (ISO)
+function daysBetween(iso1, iso2) {
+  const d1 = new Date(iso1 + 'T00:00:00');
+  const d2 = new Date(iso2 + 'T00:00:00');
+  return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+}
+
+// "3 дня назад" / "вчера" / "сегодня"
+function humanDaysAgo(iso) {
+  const diff = daysBetween(iso, today());
+  if (diff === 0) return 'сегодня';
+  if (diff === 1) return 'вчера';
+  if (diff === 2) return '2 дня назад';
+  if (diff === 3) return '3 дня назад';
+  if (diff < 7) return `${diff} дней назад`;
+  return formatDate(iso);
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -639,11 +729,21 @@ function lastWorkout(training) {
   return filtered[0] || null;
 }
 
-function lastExerciseRecord(training, exerciseIndex) {
+// Найти последнюю запись для упражнения ПО НАЗВАНИЮ (не по индексу)
+function lastExerciseRecord(training, exerciseName) {
   const filtered = DB.workouts
-    .filter(w => w.training === training && w.exercises[exerciseIndex] && w.exercises[exerciseIndex].sets && w.exercises[exerciseIndex].sets.length > 0)
+    .filter(w => w.training === training && w.exercises)
     .sort((a, b) => b.date.localeCompare(a.date));
-  return filtered[0] || null;
+  
+  for (const w of filtered) {
+    if (!w.exercises) continue;
+    for (const ex of w.exercises) {
+      if (ex.name === exerciseName && ex.sets && ex.sets.length > 0) {
+        return { workout: w, exercise: ex };
+      }
+    }
+  }
+  return null;
 }
 
 // Тренировка "в процессе" — только если она НЕ завершена
@@ -665,16 +765,48 @@ function getOrCreateWorkout(training) {
       date: today(),
       startedAt: Date.now(),
       finished: false,
-      exercises: TRAININGS[training].exercises.map(() => ({ sets: [], note: '' }))
+      exercises: TRAININGS[training].exercises.map(name => ({
+        name: name,
+        sets: [],
+        note: '',
+        skipped: false,
+        order: TRAININGS[training].exercises.indexOf(name)
+      }))
     };
     DB.workouts.push(w);
     saveData(DB);
   }
+  // Миграция: если упражнения без name — добавляем
+  w.exercises.forEach((ex, i) => {
+    if (!ex.name) ex.name = TRAININGS[training].exercises[i];
+    if (ex.order === undefined) ex.order = i;
+    if (ex.skipped === undefined) ex.skipped = false;
+  });
   if (!w.startedAt) {
     w.startedAt = Date.now();
     saveData(DB);
   }
   return w;
+}
+
+// Стрик: сколько тренировок подряд с интервалом не больше 2 дней
+function calcStreak() {
+  const sorted = DB.workouts
+    .filter(w => w.finished)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  
+  if (sorted.length === 0) return 0;
+  
+  let streak = 1;
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const diff = daysBetween(sorted[i+1].date, sorted[i].date);
+    if (diff <= 2) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
 }
 
 // ============================================================
@@ -755,9 +887,15 @@ function render() {
 }
 
 function renderHome() {
+  const streak = calcStreak();
+  
   let html = `
     <div class="header">
       <h1>Gym Tracker</h1>
+    </div>
+    <div class="date-bar">
+      <span class="today">${todayLong()}</span>
+      ${streak > 0 ? `<span class="streak">🔥 ${streak}</span>` : ''}
     </div>
     <div class="content">
       <div class="section-title">Выбери тренировку</div>
@@ -769,11 +907,8 @@ function renderHome() {
     const inProgress = currentWorkout(key);
     
     let lastText = 'Ещё не было';
-    if (last && last.finished) {
-      const dur = last.duration ? ` · ${formatTime(last.duration)}` : '';
-      lastText = `Последняя: ${formatDate(last.date)}${dur}`;
-    } else if (last) {
-      lastText = `Последняя: ${formatDate(last.date)}`;
+    if (last) {
+      lastText = `Последняя: ${humanDaysAgo(last.date)}`;
     }
     
     html += `
@@ -794,6 +929,9 @@ function renderTraining() {
   const t = TRAININGS[state.training];
   const workout = getOrCreateWorkout(state.training);
   
+  // Сортируем упражнения по order
+  const sorted = [...workout.exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
+  
   let html = `
     <div class="header">
       <button class="back-btn visible" onclick="goHome()">‹ Назад</button>
@@ -809,26 +947,50 @@ function renderTraining() {
     <div class="content">
   `;
   
-  t.exercises.forEach((ex, i) => {
-    const rec = workout.exercises[i];
+  sorted.forEach((ex, displayIndex) => {
+    const rec = ex;
     const done = rec.sets && rec.sets.length > 0;
-    const hasNote = rec.note && rec.note.trim().length > 0;
+    const isSkipped = rec.skipped;
     
-    const lastRec = lastExerciseRecord(state.training, i);
+    const lastRec = lastExerciseRecord(state.training, rec.name);
     let prevText = 'Нет данных';
     if (lastRec) {
-      const sets = lastRec.exercises[i].sets;
-      prevText = sets.map(s => `${s.weight}×${s.reps}`).join(', ');
+      prevText = lastRec.exercise.sets.map(s => `${s.weight}×${s.reps}`).join(', ');
+    }
+    
+    const realIndex = workout.exercises.indexOf(rec);
+    const canMoveUp = displayIndex > 0;
+    const canMoveDown = displayIndex < sorted.length - 1;
+    
+    let numBg = '#262626';
+    let numColor = '#888';
+    let numText = displayIndex + 1;
+    
+    if (done) {
+      numBg = '#4a9eff';
+      numColor = '#fff';
+      numText = '✓';
+    }
+    if (isSkipped) {
+      numBg = '#3a2a1a';
+      numColor = '#ff9500';
+      numText = '−';
     }
     
     html += `
-      <div class="exercise-item" onclick="openExercise(${i})">
-        <div class="num" style="${done ? 'background:#4a9eff;color:#fff' : ''}">${done ? '✓' : i+1}</div>
-        <div class="info">
-          <div class="ex-name">${ex}${hasNote ? ' 📝' : ''}</div>
-          <div class="ex-prev">${prevText}</div>
+      <div class="exercise-wrapper">
+        <div class="exercise-item ${isSkipped ? 'skipped' : ''}">
+          <div class="num" style="background:${numBg};color:${numColor}">${numText}</div>
+          <div class="info" onclick="openExercise(${realIndex})">
+            <div class="ex-name">${rec.name}</div>
+            <div class="ex-prev">${prevText}</div>
+          </div>
+          <div class="move-btns">
+            <button class="move-btn" onclick="event.stopPropagation(); moveExercise(${realIndex}, -1)" ${canMoveUp ? '' : 'disabled'}>↑</button>
+            <button class="move-btn" onclick="event.stopPropagation(); moveExercise(${realIndex}, 1)" ${canMoveDown ? '' : 'disabled'}>↓</button>
+          </div>
+          <button class="skip-btn" onclick="event.stopPropagation(); toggleSkip(${realIndex})">${isSkipped ? '↺' : '−'}</button>
         </div>
-        <div class="arrow">›</div>
       </div>
     `;
   });
@@ -845,12 +1007,12 @@ function renderTraining() {
 
 function renderExercise() {
   const t = TRAININGS[state.training];
-  const exName = t.exercises[state.exerciseIndex];
   const workout = getOrCreateWorkout(state.training);
   const rec = workout.exercises[state.exerciseIndex];
+  const exName = rec.name;
   
-  const lastRec = lastExerciseRecord(state.training, state.exerciseIndex);
-  const lastSets = lastRec ? lastRec.exercises[state.exerciseIndex].sets : [];
+  const lastRec = lastExerciseRecord(state.training, exName);
+  const lastSets = lastRec ? lastRec.exercise.sets : [];
   
   // Автоподстановка
   if (rec.sets.length === 0 && lastSets.length > 0) {
@@ -925,9 +1087,9 @@ function renderExercise() {
       </div>
     `;
   } else if (state.tab === 'history') {
-    html += renderHistory();
+    html += renderHistory(exName);
   } else if (state.tab === 'graph') {
-    html += renderGraph();
+    html += renderGraph(exName);
   }
   
   html += `</div>`;
@@ -960,51 +1122,54 @@ function renderCurrentSets(sets) {
   container.innerHTML = html;
 }
 
-function renderHistory() {
+function renderHistory(exName) {
   const all = DB.workouts
-    .filter(w => w.training === state.training)
-    .filter(w => w.exercises[state.exerciseIndex] && w.exercises[state.exerciseIndex].sets.length > 0)
+    .filter(w => w.training === state.training && w.exercises)
     .sort((a, b) => b.date.localeCompare(a.date));
   
-  if (all.length === 0) {
+  const history = [];
+  all.forEach(w => {
+    const ex = w.exercises.find(e => e.name === exName);
+    if (ex && ex.sets && ex.sets.length > 0) {
+      history.push({ date: w.date, sets: ex.sets, note: ex.note });
+    }
+  });
+  
+  if (history.length === 0) {
     return `<div class="empty"><div class="icon">📊</div><div class="text">Нет данных</div></div>`;
   }
   
   let html = '';
-  all.forEach(w => {
-    const sets = w.exercises[state.exerciseIndex].sets;
-    const note = w.exercises[state.exerciseIndex].note;
+  history.forEach(h => {
     html += `
       <div class="history-item">
-        <div class="date">${formatDate(w.date)}</div>
+        <div class="date">${formatDate(h.date)}</div>
         <div class="sets">
-          ${sets.map(s => `<div class="set-chip">${s.weight} × ${s.reps}</div>`).join('')}
+          ${h.sets.map(s => `<div class="set-chip">${s.weight} × ${s.reps}</div>`).join('')}
         </div>
-        ${note ? `<div class="note">📝 ${note}</div>` : ''}
+        ${h.note ? `<div class="note">📝 ${h.note}</div>` : ''}
       </div>
     `;
   });
   return html;
 }
 
-function renderGraph() {
+function renderGraph(exName) {
   const all = DB.workouts
-    .filter(w => w.training === state.training)
-    .filter(w => w.exercises[state.exerciseIndex] && w.exercises[state.exerciseIndex].sets.length > 0)
+    .filter(w => w.training === state.training && w.exercises)
     .sort((a, b) => a.date.localeCompare(b.date));
   
-  if (all.length < 2) {
-    return `<div class="empty"><div class="icon">📈</div><div class="text">Нужно минимум 2 тренировки</div></div>`;
-  }
-  
-  const points = all.map(w => {
-    const sets = w.exercises[state.exerciseIndex].sets;
-    const maxW = Math.max(...sets.map(s => parseFloat(s.weight) || 0));
-    return { date: w.date, value: maxW };
-  }).filter(p => p.value > 0);
+  const points = [];
+  all.forEach(w => {
+    const ex = w.exercises.find(e => e.name === exName);
+    if (ex && ex.sets && ex.sets.length > 0) {
+      const maxW = Math.max(...ex.sets.map(s => parseFloat(s.weight) || 0));
+      if (maxW > 0) points.push({ date: w.date, value: maxW });
+    }
+  });
   
   if (points.length < 2) {
-    return `<div class="empty"><div class="icon">📈</div><div class="text">Нет данных о весе</div></div>`;
+    return `<div class="empty"><div class="icon">📈</div><div class="text">Нужно минимум 2 тренировки</div></div>`;
   }
   
   const maxV = Math.max(...points.map(p => p.value));
@@ -1146,7 +1311,6 @@ function saveNote() {
   showToast('Заметка сохранена 📝');
 }
 
-// Сохранить подход (остаться в упражнении)
 function saveSet() {
   const workout = getOrCreateWorkout(state.training);
   const rec = workout.exercises[state.exerciseIndex];
@@ -1160,7 +1324,6 @@ function saveSet() {
   render();
 }
 
-// Завершить упражнение (сохранить всё и выйти)
 function finishExercise() {
   const workout = getOrCreateWorkout(state.training);
   const rec = workout.exercises[state.exerciseIndex];
@@ -1173,10 +1336,42 @@ function finishExercise() {
   backToTraining();
 }
 
-// Завершить тренировку (помечаем как finished)
+// Переместить упражнение вверх/вниз
+function moveExercise(realIndex, direction) {
+  const workout = getOrCreateWorkout(state.training);
+  const exercises = workout.exercises;
+  
+  // Найдём текущую позицию по order
+  const sorted = [...exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const currentPos = sorted.indexOf(exercises[realIndex]);
+  const swapPos = currentPos + direction;
+  
+  if (swapPos < 0 || swapPos >= sorted.length) return;
+  
+  const other = sorted[swapPos];
+  const currentOrder = exercises[realIndex].order || 0;
+  const otherOrder = other.order || 0;
+  
+  // Меняем order местами
+  exercises[realIndex].order = otherOrder;
+  other.order = currentOrder;
+  
+  saveData(DB);
+  render();
+}
+
+// Отметить упражнение как пропущенное
+function toggleSkip(realIndex) {
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[realIndex];
+  rec.skipped = !rec.skipped;
+  saveData(DB);
+  render();
+}
+
 function finishWorkout() {
   const workout = getOrCreateWorkout(state.training);
-  const done = workout.exercises.filter(e => e.sets.length > 0).length;
+  const done = workout.exercises.filter(e => e.sets.length > 0 || e.skipped).length;
   
   if (done === 0) {
     showToast('Нет сохранённых упражнений');
