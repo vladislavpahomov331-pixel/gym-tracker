@@ -646,9 +646,14 @@ function lastExerciseRecord(training, exerciseIndex) {
   return filtered[0] || null;
 }
 
+// Тренировка "в процессе" — только если она НЕ завершена
 function currentWorkout(training) {
   const t = today();
-  return DB.workouts.find(w => w.training === training && w.date === t);
+  return DB.workouts.find(w => 
+    w.training === training && 
+    w.date === t && 
+    !w.finished
+  );
 }
 
 function getOrCreateWorkout(training) {
@@ -659,6 +664,7 @@ function getOrCreateWorkout(training) {
       training: training,
       date: today(),
       startedAt: Date.now(),
+      finished: false,
       exercises: TRAININGS[training].exercises.map(() => ({ sets: [], note: '' }))
     };
     DB.workouts.push(w);
@@ -744,7 +750,6 @@ function render() {
     startWorkoutTimer();
   } else if (state.screen === 'exercise') {
     app.innerHTML = renderExercise();
-    // Таймер тренировки продолжает тикать в фоне
     if (!workoutTimerInterval && state.training) startWorkoutTimer();
   }
 }
@@ -761,8 +766,15 @@ function renderHome() {
   for (const key of ['A', 'B', 'D']) {
     const t = TRAININGS[key];
     const last = lastWorkout(key);
-    const lastText = last ? `Последняя: ${formatDate(last.date)}` : 'Ещё не было';
     const inProgress = currentWorkout(key);
+    
+    let lastText = 'Ещё не было';
+    if (last && last.finished) {
+      const dur = last.duration ? ` · ${formatTime(last.duration)}` : '';
+      lastText = `Последняя: ${formatDate(last.date)}${dur}`;
+    } else if (last) {
+      lastText = `Последняя: ${formatDate(last.date)}`;
+    }
     
     html += `
       <div class="training-card" onclick="openTraining('${key}')">
@@ -1139,14 +1151,12 @@ function saveSet() {
   const workout = getOrCreateWorkout(state.training);
   const rec = workout.exercises[state.exerciseIndex];
   
-  // Убираем пустые подходы
   rec.sets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
   saveData(DB);
   
   startRestTimer(DEFAULT_REST_SECONDS);
   showToast('Подход сохранён ✓ Отдых пошёл');
   
-  // Обновляем экран, оставаясь в упражнении
   render();
 }
 
@@ -1155,7 +1165,6 @@ function finishExercise() {
   const workout = getOrCreateWorkout(state.training);
   const rec = workout.exercises[state.exerciseIndex];
   
-  // Убираем пустые подходы
   rec.sets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
   saveData(DB);
   
@@ -1164,6 +1173,7 @@ function finishExercise() {
   backToTraining();
 }
 
+// Завершить тренировку (помечаем как finished)
 function finishWorkout() {
   const workout = getOrCreateWorkout(state.training);
   const done = workout.exercises.filter(e => e.sets.length > 0).length;
@@ -1175,6 +1185,8 @@ function finishWorkout() {
   
   const elapsed = workout.startedAt ? Math.floor((Date.now() - workout.startedAt) / 1000) : 0;
   workout.duration = elapsed;
+  workout.finished = true;
+  workout.finishedAt = Date.now();
   saveData(DB);
   
   stopWorkoutTimer();
