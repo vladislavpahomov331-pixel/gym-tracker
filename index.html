@@ -67,6 +67,34 @@
     font-weight: 400;
   }
   
+  /* MAIN TABS */
+  .main-tabs {
+    display: flex;
+    background: #141414;
+    border-bottom: 1px solid #222;
+    flex-shrink: 0;
+  }
+  .main-tab {
+    flex: 1;
+    padding: 12px 4px;
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .main-tab.active {
+    color: #4a9eff;
+    border-bottom-color: #4a9eff;
+  }
+  .main-tab .icon {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+  
   /* DATE BAR */
   .date-bar {
     background: #141414;
@@ -88,7 +116,6 @@
     font-weight: 700;
   }
   
-  /* WORKOUT TIMER */
   .workout-timer {
     background: #141414;
     border-bottom: 1px solid #222;
@@ -106,7 +133,6 @@
     font-variant-numeric: tabular-nums;
   }
   
-  /* REST TIMER */
   .rest-timer {
     position: fixed;
     bottom: 0;
@@ -278,7 +304,6 @@
     color: #888;
   }
   
-  /* MOVE BUTTONS */
   .move-btns {
     display: flex;
     gap: 6px;
@@ -443,39 +468,170 @@
     flex: 1;
   }
   
-  .history-item {
+  /* HISTORY SCREEN */
+  .history-workout {
     background: #1a1a1a;
     border: 1px solid #262626;
     border-radius: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .history-workout-header {
     padding: 14px;
-    margin-bottom: 8px;
-  }
-  .history-item .date {
-    font-size: 13px;
-    color: #4a9eff;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-  .history-item .sets {
+    cursor: pointer;
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
   }
-  .history-item .set-chip {
-    background: #262626;
-    border-radius: 8px;
-    padding: 6px 10px;
+  .history-workout-header:active {
+    background: #222;
+  }
+  .history-workout-header .badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #4a9eff;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .history-workout-header .meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .history-workout-header .meta .title {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .history-workout-header .meta .sub {
+    font-size: 12px;
+    color: #666;
+  }
+  .history-workout-header .chev {
+    color: #444;
+    font-size: 18px;
+    transition: transform 0.2s;
+  }
+  .history-workout.expanded .history-workout-header .chev {
+    transform: rotate(90deg);
+  }
+  .history-workout-body {
+    display: none;
+    padding: 0 14px 14px 14px;
+    border-top: 1px solid #262626;
+  }
+  .history-workout.expanded .history-workout-body {
+    display: block;
+  }
+  .history-ex {
+    padding: 10px 0;
+    border-bottom: 1px solid #1f1f1f;
+  }
+  .history-ex:last-child {
+    border-bottom: none;
+  }
+  .history-ex .name {
     font-size: 13px;
     color: #e5e5e5;
     font-weight: 500;
+    margin-bottom: 6px;
   }
-  .history-item .note {
+  .history-ex .name.skipped {
+    text-decoration: line-through;
+    color: #666;
+  }
+  .history-ex .sets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .history-ex .set-chip {
+    background: #262626;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #e5e5e5;
+    font-weight: 500;
+  }
+  .history-ex .set-chip.skipped {
+    background: #2a1a1a;
+    color: #ff6b6b;
+  }
+  .history-ex .note {
     font-size: 12px;
     color: #888;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #262626;
+    margin-top: 6px;
     font-style: italic;
+  }
+  
+  /* GRAPH SCREEN */
+  .graph-selector {
+    background: #1a1a1a;
+    border: 1px solid #262626;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 15px;
+    color: #fff;
+    width: 100%;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .graph-selector:active {
+    background: #222;
+  }
+  .graph-selector .placeholder {
+    color: #666;
+  }
+  .graph-selector .val {
+    color: #4a9eff;
+    font-weight: 600;
+  }
+  .exercise-picker {
+    background: #1a1a1a;
+    border: 1px solid #262626;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+  }
+  .exercise-picker.show {
+    display: block;
+  }
+  .picker-group-title {
+    padding: 12px 16px 6px 16px;
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+  .picker-item {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #e5e5e5;
+    cursor: pointer;
+    border-bottom: 1px solid #1f1f1f;
+  }
+  .picker-item:last-child {
+    border-bottom: none;
+  }
+  .picker-item:active {
+    background: #222;
+  }
+  .picker-item.selected {
+    color: #4a9eff;
+    font-weight: 600;
   }
   
   .graph-container {
@@ -633,12 +789,11 @@ const TRAININGS = {
 };
 
 const DEFAULT_REST_SECONDS = 90;
+const STORAGE_KEY = 'gym_tracker_data_v2';
 
 // ============================================================
 // STORAGE
 // ============================================================
-const STORAGE_KEY = 'gym_tracker_data_v2';
-
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -659,10 +814,14 @@ let DB = loadData();
 // STATE
 // ============================================================
 let state = {
-  screen: 'home',
+  screen: 'home',       // home | training | exercise
+  mainTab: 'workouts',  // workouts | history | graphs
   training: null,
   exerciseIndex: null,
-  tab: 'workout'
+  tab: 'workout',
+  selectedExercise: null,    // для графиков
+  pickerOpen: false,         // открыт ли список выбора упражнения
+  expandedWorkouts: {}       // какие тренировки раскрыты в истории
 };
 
 let workoutTimerInterval = null;
@@ -689,7 +848,6 @@ function formatTime(seconds) {
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-// Дата в стиле "Понедельник, 26 сентября"
 function todayLong() {
   const d = new Date();
   const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
@@ -697,14 +855,12 @@ function todayLong() {
   return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-// Сколько дней прошло между датами (ISO)
 function daysBetween(iso1, iso2) {
   const d1 = new Date(iso1 + 'T00:00:00');
   const d2 = new Date(iso2 + 'T00:00:00');
   return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
 }
 
-// "3 дня назад" / "вчера" / "сегодня"
 function humanDaysAgo(iso) {
   const diff = daysBetween(iso, today());
   if (diff === 0) return 'сегодня';
@@ -729,7 +885,6 @@ function lastWorkout(training) {
   return filtered[0] || null;
 }
 
-// Найти последнюю запись для упражнения ПО НАЗВАНИЮ (не по индексу)
 function lastExerciseRecord(training, exerciseName) {
   const filtered = DB.workouts
     .filter(w => w.training === training && w.exercises)
@@ -746,7 +901,6 @@ function lastExerciseRecord(training, exerciseName) {
   return null;
 }
 
-// Тренировка "в процессе" — только если она НЕ завершена
 function currentWorkout(training) {
   const t = today();
   return DB.workouts.find(w => 
@@ -776,7 +930,6 @@ function getOrCreateWorkout(training) {
     DB.workouts.push(w);
     saveData(DB);
   }
-  // Миграция: если упражнения без name — добавляем
   w.exercises.forEach((ex, i) => {
     if (!ex.name) ex.name = TRAININGS[training].exercises[i];
     if (ex.order === undefined) ex.order = i;
@@ -789,7 +942,6 @@ function getOrCreateWorkout(training) {
   return w;
 }
 
-// Стрик: сколько тренировок подряд с интервалом не больше 2 дней
 function calcStreak() {
   const sorted = DB.workouts
     .filter(w => w.finished)
@@ -807,6 +959,17 @@ function calcStreak() {
     }
   }
   return streak;
+}
+
+// Все упражнения со всех тренировок (для выбора в графиках)
+function allExercises() {
+  const result = [];
+  for (const key of ['A', 'B', 'D']) {
+    TRAININGS[key].exercises.forEach(ex => {
+      result.push({ training: key, name: ex });
+    });
+  }
+  return result;
 }
 
 // ============================================================
@@ -893,6 +1056,33 @@ function renderHome() {
     <div class="header">
       <h1>Gym Tracker</h1>
     </div>
+    <div class="main-tabs">
+      <div class="main-tab ${state.mainTab === 'workouts' ? 'active' : ''}" onclick="switchMainTab('workouts')">
+        <span class="icon">🏋️</span>Тренировки
+      </div>
+      <div class="main-tab ${state.mainTab === 'history' ? 'active' : ''}" onclick="switchMainTab('history')">
+        <span class="icon">📊</span>История
+      </div>
+      <div class="main-tab ${state.mainTab === 'graphs' ? 'active' : ''}" onclick="switchMainTab('graphs')">
+        <span class="icon">📈</span>Графики
+      </div>
+    </div>
+  `;
+  
+  if (state.mainTab === 'workouts') {
+    html += renderWorkoutsTab(streak);
+  } else if (state.mainTab === 'history') {
+    html += renderHistoryTab();
+  } else if (state.mainTab === 'graphs') {
+    html += renderGraphsTab();
+  }
+  
+  return html;
+}
+
+// ---------- TAB 1: WORKOUTS ----------
+function renderWorkoutsTab(streak) {
+  let html = `
     <div class="date-bar">
       <span class="today">${todayLong()}</span>
       ${streak > 0 ? `<span class="streak">🔥 ${streak}</span>` : ''}
@@ -908,493 +1098,4 @@ function renderHome() {
     
     let lastText = 'Ещё не было';
     if (last) {
-      lastText = `Последняя: ${humanDaysAgo(last.date)}`;
-    }
-    
-    html += `
-      <div class="training-card" onclick="openTraining('${key}')">
-        <div class="label">${key}</div>
-        <div class="name">${t.name}</div>
-        <div class="count">${t.exercises.length} упражнений</div>
-        <div class="last">${inProgress ? '⚡ В процессе' : lastText}</div>
-      </div>
-    `;
-  }
-  
-  html += `</div>`;
-  return html;
-}
-
-function renderTraining() {
-  const t = TRAININGS[state.training];
-  const workout = getOrCreateWorkout(state.training);
-  
-  // Сортируем упражнения по order
-  const sorted = [...workout.exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
-  
-  let html = `
-    <div class="header">
-      <button class="back-btn visible" onclick="goHome()">‹ Назад</button>
-      <div style="flex:1">
-        <h1>Тренировка ${state.training}</h1>
-        <div class="sub">${t.name}</div>
-      </div>
-    </div>
-    <div class="workout-timer">
-      <span>⏱ Время тренировки</span>
-      <span class="val" id="workout-timer-val">00:00</span>
-    </div>
-    <div class="content">
-  `;
-  
-  sorted.forEach((ex, displayIndex) => {
-    const rec = ex;
-    const done = rec.sets && rec.sets.length > 0;
-    const isSkipped = rec.skipped;
-    
-    const lastRec = lastExerciseRecord(state.training, rec.name);
-    let prevText = 'Нет данных';
-    if (lastRec) {
-      prevText = lastRec.exercise.sets.map(s => `${s.weight}×${s.reps}`).join(', ');
-    }
-    
-    const realIndex = workout.exercises.indexOf(rec);
-    const canMoveUp = displayIndex > 0;
-    const canMoveDown = displayIndex < sorted.length - 1;
-    
-    let numBg = '#262626';
-    let numColor = '#888';
-    let numText = displayIndex + 1;
-    
-    if (done) {
-      numBg = '#4a9eff';
-      numColor = '#fff';
-      numText = '✓';
-    }
-    if (isSkipped) {
-      numBg = '#3a2a1a';
-      numColor = '#ff9500';
-      numText = '−';
-    }
-    
-    html += `
-      <div class="exercise-wrapper">
-        <div class="exercise-item ${isSkipped ? 'skipped' : ''}">
-          <div class="num" style="background:${numBg};color:${numColor}">${numText}</div>
-          <div class="info" onclick="openExercise(${realIndex})">
-            <div class="ex-name">${rec.name}</div>
-            <div class="ex-prev">${prevText}</div>
-          </div>
-          <div class="move-btns">
-            <button class="move-btn" onclick="event.stopPropagation(); moveExercise(${realIndex}, -1)" ${canMoveUp ? '' : 'disabled'}>↑</button>
-            <button class="move-btn" onclick="event.stopPropagation(); moveExercise(${realIndex}, 1)" ${canMoveDown ? '' : 'disabled'}>↓</button>
-          </div>
-          <button class="skip-btn" onclick="event.stopPropagation(); toggleSkip(${realIndex})">${isSkipped ? '↺' : '−'}</button>
-        </div>
-      </div>
-    `;
-  });
-  
-  html += `
-      <div class="btn-row">
-        <button class="btn secondary" onclick="finishWorkout()">Завершить тренировку</button>
-      </div>
-    </div>
-  `;
-  
-  return html;
-}
-
-function renderExercise() {
-  const t = TRAININGS[state.training];
-  const workout = getOrCreateWorkout(state.training);
-  const rec = workout.exercises[state.exerciseIndex];
-  const exName = rec.name;
-  
-  const lastRec = lastExerciseRecord(state.training, exName);
-  const lastSets = lastRec ? lastRec.exercise.sets : [];
-  
-  // Автоподстановка
-  if (rec.sets.length === 0 && lastSets.length > 0) {
-    rec.sets = lastSets.map(s => ({ weight: s.weight, reps: s.reps }));
-    saveData(DB);
-  }
-  
-  const currentSets = rec.sets.length > 0 ? rec.sets : [{weight:'', reps:''}];
-  
-  let html = `
-    <div class="header">
-      <button class="back-btn visible" onclick="backToTraining()">‹ Назад</button>
-      <h1 style="font-size:16px">${exName}</h1>
-    </div>
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('workout')">Тренировка</div>
-      <div class="tab" onclick="switchTab('history')">История</div>
-      <div class="tab" onclick="switchTab('graph')">График</div>
-    </div>
-    <div class="content">
-  `;
-  
-  if (state.tab === 'workout') {
-    html += `
-      <div class="section-title">Прошлая тренировка</div>
-      <div class="sets-header">
-        <div>#</div>
-        <div>Вес (кг)</div>
-        <div>Повторы</div>
-      </div>
-    `;
-    
-    if (lastSets.length === 0) {
-      html += `<div style="text-align:center;color:#444;padding:20px;font-size:14px">Нет данных</div>`;
-    } else {
-      lastSets.forEach((s, i) => {
-        html += `
-          <div class="set-row">
-            <div class="set-num">${i+1}</div>
-            <input class="set-input prev" type="number" value="${s.weight}" disabled>
-            <input class="set-input prev" type="number" value="${s.reps}" disabled>
-          </div>
-        `;
-      });
-    }
-    
-    html += `
-      <div class="section-title">Эта тренировка</div>
-      <div class="sets-header">
-        <div>#</div>
-        <div>Вес (кг)</div>
-        <div>Повторы</div>
-      </div>
-      <div id="current-sets"></div>
-      <div class="btn-row">
-        <button class="btn secondary" onclick="removeSet()">− Убрать</button>
-        <button class="btn secondary" onclick="addSet()">+ Добавить</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn success" onclick="saveSet()">✅ Сохранить подход</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn secondary" onclick="finishExercise()">🏁 Завершить упражнение</button>
-      </div>
-      
-      <div class="section-title">Заметка</div>
-      <textarea class="notes-input" id="notes-input" 
-                placeholder="Как прошло? Что запомнить?"
-                oninput="updateNote(this.value)">${rec.note || ''}</textarea>
-      <div class="btn-row">
-        <button class="btn secondary" onclick="saveNote()">Сохранить заметку</button>
-      </div>
-    `;
-  } else if (state.tab === 'history') {
-    html += renderHistory(exName);
-  } else if (state.tab === 'graph') {
-    html += renderGraph(exName);
-  }
-  
-  html += `</div>`;
-  
-  setTimeout(() => {
-    if (state.tab === 'workout') renderCurrentSets(currentSets);
-  }, 0);
-  
-  return html;
-}
-
-function renderCurrentSets(sets) {
-  const container = document.getElementById('current-sets');
-  if (!container) return;
-  
-  let html = '';
-  sets.forEach((s, i) => {
-    html += `
-      <div class="set-row">
-        <div class="set-num">${i+1}</div>
-        <input class="set-input current" type="number" inputmode="decimal" 
-               value="${s.weight}" placeholder="—" 
-               oninput="updateSet(${i}, 'weight', this.value)">
-        <input class="set-input current" type="number" inputmode="numeric" 
-               value="${s.reps}" placeholder="—" 
-               oninput="updateSet(${i}, 'reps', this.value)">
-      </div>
-    `;
-  });
-  container.innerHTML = html;
-}
-
-function renderHistory(exName) {
-  const all = DB.workouts
-    .filter(w => w.training === state.training && w.exercises)
-    .sort((a, b) => b.date.localeCompare(a.date));
-  
-  const history = [];
-  all.forEach(w => {
-    const ex = w.exercises.find(e => e.name === exName);
-    if (ex && ex.sets && ex.sets.length > 0) {
-      history.push({ date: w.date, sets: ex.sets, note: ex.note });
-    }
-  });
-  
-  if (history.length === 0) {
-    return `<div class="empty"><div class="icon">📊</div><div class="text">Нет данных</div></div>`;
-  }
-  
-  let html = '';
-  history.forEach(h => {
-    html += `
-      <div class="history-item">
-        <div class="date">${formatDate(h.date)}</div>
-        <div class="sets">
-          ${h.sets.map(s => `<div class="set-chip">${s.weight} × ${s.reps}</div>`).join('')}
-        </div>
-        ${h.note ? `<div class="note">📝 ${h.note}</div>` : ''}
-      </div>
-    `;
-  });
-  return html;
-}
-
-function renderGraph(exName) {
-  const all = DB.workouts
-    .filter(w => w.training === state.training && w.exercises)
-    .sort((a, b) => a.date.localeCompare(b.date));
-  
-  const points = [];
-  all.forEach(w => {
-    const ex = w.exercises.find(e => e.name === exName);
-    if (ex && ex.sets && ex.sets.length > 0) {
-      const maxW = Math.max(...ex.sets.map(s => parseFloat(s.weight) || 0));
-      if (maxW > 0) points.push({ date: w.date, value: maxW });
-    }
-  });
-  
-  if (points.length < 2) {
-    return `<div class="empty"><div class="icon">📈</div><div class="text">Нужно минимум 2 тренировки</div></div>`;
-  }
-  
-  const maxV = Math.max(...points.map(p => p.value));
-  const minV = Math.min(...points.map(p => p.value));
-  const range = maxV - minV || 1;
-  
-  const W = 300;
-  const H = 180;
-  const padX = 10;
-  const padY = 20;
-  const graphW = W - padX * 2;
-  const graphH = H - padY * 2;
-  
-  const coords = points.map((p, i) => {
-    const x = padX + (i / (points.length - 1)) * graphW;
-    const y = padY + graphH - ((p.value - minV) / range) * graphH;
-    return { x, y, ...p };
-  });
-  
-  const pathD = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
-  
-  let svg = `<svg class="graph-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
-  
-  for (let i = 0; i <= 4; i++) {
-    const y = padY + (i / 4) * graphH;
-    svg += `<line x1="${padX}" y1="${y}" x2="${W-padX}" y2="${y}" stroke="#262626" stroke-width="1"/>`;
-  }
-  
-  svg += `<path d="${pathD}" fill="none" stroke="#4a9eff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
-  
-  coords.forEach(c => {
-    svg += `<circle cx="${c.x}" cy="${c.y}" r="4" fill="#4a9eff"/>`;
-  });
-  
-  svg += `</svg>`;
-  
-  const first = points[0].value;
-  const last = points[points.length - 1].value;
-  const diff = last - first;
-  const diffText = diff > 0 ? `+${diff}` : `${diff}`;
-  
-  return `
-    <div class="graph-container">
-      <div class="graph-title">Максимальный вес по тренировкам</div>
-      ${svg}
-      <div class="graph-stats">
-        <div class="stat">
-          <div class="stat-label">Сейчас</div>
-          <div class="stat-value">${last} кг</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Прогресс</div>
-          <div class="stat-value" style="color:${diff >= 0 ? '#4a9eff' : '#ff6b6b'}">${diffText} кг</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Тренировок</div>
-          <div class="stat-value">${points.length}</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-// ============================================================
-// ACTIONS
-// ============================================================
-function openTraining(key) {
-  state.training = key;
-  state.screen = 'training';
-  render();
-}
-
-function goHome() {
-  state.screen = 'home';
-  state.training = null;
-  state.exerciseIndex = null;
-  state.tab = 'workout';
-  stopWorkoutTimer();
-  stopRestTimer();
-  render();
-}
-
-function openExercise(index) {
-  state.exerciseIndex = index;
-  state.screen = 'exercise';
-  state.tab = 'workout';
-  render();
-}
-
-function backToTraining() {
-  state.screen = 'training';
-  state.exerciseIndex = null;
-  state.tab = 'workout';
-  render();
-}
-
-function switchTab(tab) {
-  state.tab = tab;
-  render();
-}
-
-function addSet() {
-  const workout = getOrCreateWorkout(state.training);
-  const rec = workout.exercises[state.exerciseIndex];
-  if (rec.sets.length === 0) {
-    rec.sets.push({weight:'', reps:''});
-  }
-  rec.sets.push({weight:'', reps:''});
-  saveData(DB);
-  render();
-}
-
-function removeSet() {
-  const workout = getOrCreateWorkout(state.training);
-  const rec = workout.exercises[state.exerciseIndex];
-  if (rec.sets.length > 1) {
-    rec.sets.pop();
-    saveData(DB);
-  }
-  render();
-}
-
-function updateSet(index, field, value) {
-  const workout = getOrCreateWorkout(state.training);
-  const rec = workout.exercises[state.exerciseIndex];
-  if (!rec.sets[index]) rec.sets[index] = {weight:'', reps:''};
-  rec.sets[index][field] = value;
-  saveData(DB);
-}
-
-function updateNote(value) {
-  const workout = getOrCreateWorkout(state.training);
-  const rec = workout.exercises[state.exerciseIndex];
-  rec.note = value;
-  saveData(DB);
-}
-
-function saveNote() {
-  showToast('Заметка сохранена 📝');
-}
-
-function saveSet() {
-  const workout = getOrCreateWorkout(state.training);
-  const rec = workout.exercises[state.exerciseIndex];
-  
-  rec.sets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
-  saveData(DB);
-  
-  startRestTimer(DEFAULT_REST_SECONDS);
-  showToast('Подход сохранён ✓ Отдых пошёл');
-  
-  render();
-}
-
-function finishExercise() {
-  const workout = getOrCreateWorkout(state.training);
-  const rec = workout.exercises[state.exerciseIndex];
-  
-  rec.sets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
-  saveData(DB);
-  
-  stopRestTimer();
-  showToast('Упражнение завершено ✓');
-  backToTraining();
-}
-
-// Переместить упражнение вверх/вниз
-function moveExercise(realIndex, direction) {
-  const workout = getOrCreateWorkout(state.training);
-  const exercises = workout.exercises;
-  
-  // Найдём текущую позицию по order
-  const sorted = [...exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
-  const currentPos = sorted.indexOf(exercises[realIndex]);
-  const swapPos = currentPos + direction;
-  
-  if (swapPos < 0 || swapPos >= sorted.length) return;
-  
-  const other = sorted[swapPos];
-  const currentOrder = exercises[realIndex].order || 0;
-  const otherOrder = other.order || 0;
-  
-  // Меняем order местами
-  exercises[realIndex].order = otherOrder;
-  other.order = currentOrder;
-  
-  saveData(DB);
-  render();
-}
-
-// Отметить упражнение как пропущенное
-function toggleSkip(realIndex) {
-  const workout = getOrCreateWorkout(state.training);
-  const rec = workout.exercises[realIndex];
-  rec.skipped = !rec.skipped;
-  saveData(DB);
-  render();
-}
-
-function finishWorkout() {
-  const workout = getOrCreateWorkout(state.training);
-  const done = workout.exercises.filter(e => e.sets.length > 0 || e.skipped).length;
-  
-  if (done === 0) {
-    showToast('Нет сохранённых упражнений');
-    return;
-  }
-  
-  const elapsed = workout.startedAt ? Math.floor((Date.now() - workout.startedAt) / 1000) : 0;
-  workout.duration = elapsed;
-  workout.finished = true;
-  workout.finishedAt = Date.now();
-  saveData(DB);
-  
-  stopWorkoutTimer();
-  stopRestTimer();
-  
-  showToast(`Тренировка завершена! Время: ${formatTime(elapsed)}`);
-  setTimeout(goHome, 1500);
-}
-
-// ============================================================
-// INIT
-// ============================================================
-render();
-</script>
-</body>
-</html>
+     
