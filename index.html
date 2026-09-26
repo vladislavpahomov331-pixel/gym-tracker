@@ -95,7 +95,7 @@
   }
   .rest-timer .rest-btn {
     background: #262626; border: none; color: #e5e5e5;
-    padding: 10px 16px; border-radius: 10px; font-size: 14px;
+    padding: 10px 14px; border-radius: 10px; font-size: 14px;
     font-weight: 600; cursor: pointer; font-family: inherit;
   }
   .rest-timer .rest-btn:active { background: #333; }
@@ -223,6 +223,19 @@
     margin: 20px 0 12px 4px;
   }
   .section-title:first-child { margin-top: 0; }
+  .section-title.flex {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .rest-badge {
+    color: #4a9eff; font-size: 12px;
+    text-transform: none; letter-spacing: 0;
+    cursor: pointer;
+    background: #1f1f1f;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .rest-badge:active { background: #262626; }
 
   .btn {
     background: #4a9eff; color: #fff; border: none;
@@ -451,7 +464,11 @@
     <div class="rest-label">Отдых</div>
     <div class="rest-val" id="restVal">01:30</div>
   </div>
-  <button class="rest-btn stop" onclick="stopRestTimer()">Стоп</button>
+  <div style="display:flex;gap:8px">
+    <button class="rest-btn" onclick="adjustRestTimer(-30)">−30</button>
+    <button class="rest-btn" onclick="adjustRestTimer(30)">+30</button>
+    <button class="rest-btn stop" onclick="stopRestTimer()">Стоп</button>
+  </div>
 </div>
 
 <div class="modal-overlay" id="modal">
@@ -471,7 +488,7 @@
 // DEFAULT PROGRAMS
 // ============================================================
 const DEFAULT_PROGRAMS = [
-  { id: 'A', name: 'Грудь, бицепс', isLib: false, exercises: [
+  { id: 'A', name: 'Грудь, бицепс', isLib: false, restTimes: [], exercises: [
     'Жим от груди',
     'Жим в Хаммере',
     'Жим в наклонной скамье',
@@ -480,7 +497,7 @@ const DEFAULT_PROGRAMS = [
     'Подъём на бицепс на скамье',
     'Скамья Скотта'
   ]},
-  { id: 'B', name: 'Спина, трицепс', isLib: false, exercises: [
+  { id: 'B', name: 'Спина, трицепс', isLib: false, restTimes: [], exercises: [
     'Подтягивания с резинкой',
     'Тяга верхнего блока',
     'Тяга в тренажёре',
@@ -489,7 +506,7 @@ const DEFAULT_PROGRAMS = [
     'Трицепс в кроссовере',
     'Гиперэкстензия'
   ]},
-  { id: 'D', name: 'Ноги, плечи', isLib: false, exercises: [
+  { id: 'D', name: 'Ноги, плечи', isLib: false, restTimes: [], exercises: [
     'Жим платформы',
     'Разгибание ног сидя',
     'Разгибание ног лёжа',
@@ -520,6 +537,10 @@ function loadData() {
       data.programs = JSON.parse(JSON.stringify(DEFAULT_PROGRAMS));
     }
     if (!data.workouts) data.workouts = [];
+    // Миграция: если у программ нет restTimes
+    data.programs.forEach(p => {
+      if (!p.restTimes) p.restTimes = [];
+    });
     return data;
   } catch(e) {
     return {
@@ -552,7 +573,7 @@ function libPrograms() {
 // ============================================================
 let state = {
   screen: 'home',
-  mainTab: 'workouts',    // workouts | library | history | graphs
+  mainTab: 'workouts',
   training: null,
   exerciseIndex: null,
   editProgramId: null,
@@ -666,7 +687,8 @@ function getOrCreateWorkout(training) {
         sets: [],
         note: '',
         skipped: false,
-        order: i
+        order: i,
+        restTime: (prog.restTimes && prog.restTimes[i]) || null
       }))
     };
     DB.workouts.push(w);
@@ -699,14 +721,16 @@ function calcStreak() {
   return streak;
 }
 
-function allExercises() {
-  const result = [];
-  DB.programs.forEach(p => {
-    p.exercises.forEach(name => {
-      result.push({ training: p.id, trainingName: p.name, name });
-    });
-  });
-  return result;
+// Время отдыха для упражнения
+function getRestTimeForExercise(training, exName) {
+  const prog = findProgram(training);
+  if (!prog) return DEFAULT_REST_SECONDS;
+  const idx = prog.exercises.indexOf(exName);
+  if (idx < 0) return DEFAULT_REST_SECONDS;
+  if (prog.restTimes && prog.restTimes[idx]) {
+    return prog.restTimes[idx];
+  }
+  return DEFAULT_REST_SECONDS;
 }
 
 // ============================================================
@@ -817,6 +841,15 @@ function stopRestTimer() {
   if (el) el.classList.remove('show');
 }
 
+function adjustRestTimer(delta) {
+  if (restTimerInterval) {
+    restSecondsLeft += delta;
+    if (restSecondsLeft < 5) restSecondsLeft = 5;
+    if (restSecondsLeft > 900) restSecondsLeft = 900;
+    document.getElementById('restVal').textContent = formatTime(restSecondsLeft);
+  }
+}
+
 // ============================================================
 // RENDER
 // ============================================================
@@ -912,7 +945,7 @@ function renderWorkoutsTab(streak) {
         <button class="btn secondary" onclick="startAddProgram(false)">+ Новая программа</button>
       </div>
       <div class="hint">
-        Тапни на программу, чтобы открыть редактор. Там можно изменить упражнения, порядок и начать тренировку.
+        Тапни на программу — откроется редактор. Там можно изменить упражнения, порядок, время отдыха и начать тренировку.
       </div>
     </div>
   `;
@@ -939,6 +972,7 @@ function startAddProgram(isLib) {
       id: id,
       name: name,
       isLib: !!isLib,
+      restTimes: [],
       exercises: []
     });
     saveData();
@@ -979,8 +1013,8 @@ function renderLibraryTab() {
         <button class="btn purple" onclick="startAddProgram(true)">+ Добавить программу</button>
       </div>
       <div class="hint">
-        Библиотека — это отдельные программы. Они не трогают основные A/B/D.<br>
-        Используй их для вариантов: «A-облегчённый», «День спины v2», «Короткая тренировка» и т.д.
+        Библиотека — отдельные программы. Они не трогают A/B/D.<br>
+        Используй их для вариантов: «A-облегчённый», «День спины v2», «Короткая тренировка».
       </div>
     </div>
   `;
@@ -1210,12 +1244,17 @@ function renderProgramEdit() {
     prog.exercises.forEach((name, i) => {
       const canUp = i > 0;
       const canDown = i < prog.exercises.length - 1;
+      const restSec = prog.restTimes && prog.restTimes[i] ? prog.restTimes[i] : null;
+
       html += `
         <div class="exercise-wrapper">
           <div class="exercise-item">
             <div class="num">${i+1}</div>
             <div class="info">
               <div class="ex-name">${name}</div>
+              <div class="ex-prev" onclick="event.stopPropagation(); editRestTime(${i})" style="cursor:pointer;color:${restSec ? '#4a9eff' : '#666'}">
+                ⏱ отдых: ${restSec ? restSec + 'с' : 'по умолчанию (90с)'} · тапни чтобы изменить
+              </div>
             </div>
             <div class="move-btns">
               <button class="move-btn" onclick="editMoveExercise(${i}, -1)" ${canUp ? '' : 'disabled'}>↑</button>
@@ -1234,14 +1273,13 @@ function renderProgramEdit() {
       </div>
   `;
 
-  // Кнопка "Сохранить в библиотеку" — только для основных программ
   if (!prog.isLib) {
     html += `
       <div class="btn-row">
         <button class="btn purple" onclick="saveToLibrary()">📚 Сохранить в библиотеку</button>
       </div>
       <div class="hint">
-        Сохрани текущий вариант программы как отдельную запись в библиотеке. Удобно, если хочешь иметь несколько вариантов одной программы.
+        Сохрани текущий вариант программы как отдельную запись в библиотеке.
       </div>
     `;
   }
@@ -1292,6 +1330,7 @@ function editAddExercise() {
     if (!name) return;
     const prog = findProgram(state.editProgramId);
     prog.exercises.push(name);
+    if (!prog.restTimes) prog.restTimes = [];
     saveData();
     render();
     showToast('Упражнение добавлено');
@@ -1305,6 +1344,7 @@ function editDeleteExercise(i) {
     confirmLabel: 'Удалить'
   }, () => {
     prog.exercises.splice(i, 1);
+    if (prog.restTimes) prog.restTimes.splice(i, 1);
     saveData();
     render();
     showToast('Удалено');
@@ -1315,9 +1355,45 @@ function editMoveExercise(i, dir) {
   const prog = findProgram(state.editProgramId);
   const j = i + dir;
   if (j < 0 || j >= prog.exercises.length) return;
+
   [prog.exercises[i], prog.exercises[j]] = [prog.exercises[j], prog.exercises[i]];
+
+  if (!prog.restTimes) prog.restTimes = [];
+  const ti = prog.restTimes[i];
+  const tj = prog.restTimes[j];
+  prog.restTimes[i] = tj;
+  prog.restTimes[j] = ti;
+
   saveData();
   render();
+}
+
+function editRestTime(i) {
+  const prog = findProgram(state.editProgramId);
+  if (!prog.restTimes) prog.restTimes = [];
+  const current = prog.restTimes[i] || '';
+  openModal('Время отдыха', {
+    text: 'Введи количество секунд (10–900). Оставь пустым — по умолчанию 90с.',
+    inputPlaceholder: 'Например: 120',
+    inputValue: current,
+    inputType: 'number',
+    confirmLabel: 'Сохранить'
+  }, (value) => {
+    if (!prog.restTimes) prog.restTimes = [];
+    if (!value) {
+      prog.restTimes[i] = null;
+    } else {
+      const n = parseInt(value);
+      if (isNaN(n) || n < 10 || n > 900) {
+        showToast('10–900 секунд');
+        return;
+      }
+      prog.restTimes[i] = n;
+    }
+    saveData();
+    render();
+    showToast('Сохранено');
+  });
 }
 
 function deleteProgram() {
@@ -1333,7 +1409,6 @@ function deleteProgram() {
   });
 }
 
-// Сохранить текущую программу в библиотеку как отдельную запись
 function saveToLibrary() {
   const prog = findProgram(state.editProgramId);
   if (!prog) return;
@@ -1345,7 +1420,6 @@ function saveToLibrary() {
   }, (name) => {
     if (!name) return;
 
-    // Генерируем уникальный ID
     let id = 'L-' + Date.now().toString().slice(-6);
     while (DB.programs.find(p => p.id === id)) {
       id = 'L-' + Math.random().toString(36).slice(2, 8);
@@ -1355,6 +1429,7 @@ function saveToLibrary() {
       id: id,
       name: name,
       isLib: true,
+      restTimes: [...(prog.restTimes || [])],
       exercises: [...prog.exercises]
     });
     saveData();
@@ -1442,7 +1517,6 @@ function renderTraining() {
   return html;
 }
 
-// Удалить упражнение из ТЕКУЩЕЙ тренировки (программа не трогается)
 function removeExerciseFromWorkout(realIndex) {
   const workout = getOrCreateWorkout(state.training);
   const ex = workout.exercises[realIndex];
@@ -1459,7 +1533,6 @@ function removeExerciseFromWorkout(realIndex) {
   });
 }
 
-// Добавить упражнение в ТЕКУЩУЮ тренировку
 function addExerciseToWorkout() {
   openModal('Добавить упражнение на сегодня', {
     inputPlaceholder: 'Название упражнения',
@@ -1473,7 +1546,8 @@ function addExerciseToWorkout() {
       sets: [],
       note: '',
       skipped: false,
-      order: maxOrder + 1
+      order: maxOrder + 1,
+      restTime: null
     });
     saveData();
     render();
@@ -1498,6 +1572,7 @@ function renderExercise() {
   }
 
   const currentSets = rec.sets.length > 0 ? rec.sets : [{weight:'', reps:''}];
+  const restSec = getRestTimeForExercise(state.training, exName);
 
   let html = `
     <div class="header">
@@ -1533,7 +1608,10 @@ function renderExercise() {
     }
 
     html += `
-      <div class="section-title">Эта тренировка</div>
+      <div class="section-title flex">
+        <span>Эта тренировка</span>
+        <span class="rest-badge" onclick="editRestTimeInWorkout()">⏱ отдых: ${restSec}с</span>
+      </div>
       <div class="sets-header"><div>#</div><div>Вес (кг)</div><div>Повторы</div></div>
       <div id="current-sets"></div>
       <div class="btn-row">
@@ -1704,8 +1782,11 @@ function saveSet() {
   const rec = workout.exercises[state.exerciseIndex];
   rec.sets = rec.sets.filter(s => s.weight !== '' && s.reps !== '');
   saveData();
-  startRestTimer(DEFAULT_REST_SECONDS);
-  showToast('Подход сохранён ✓ Отдых пошёл');
+
+  const restSec = getRestTimeForExercise(state.training, rec.name);
+  startRestTimer(restSec);
+
+  showToast(`Подход сохранён ✓ Отдых ${restSec}с`);
   render();
 }
 
@@ -1717,6 +1798,46 @@ function finishExercise() {
   stopRestTimer();
   showToast('Упражнение завершено ✓');
   backToTraining();
+}
+
+function editRestTimeInWorkout() {
+  const prog = findProgram(state.training);
+  if (!prog) return;
+  const workout = getOrCreateWorkout(state.training);
+  const rec = workout.exercises[state.exerciseIndex];
+  const exName = rec.name;
+  const idx = prog.exercises.indexOf(exName);
+
+  if (idx < 0) {
+    prog.exercises.push(exName);
+    if (!prog.restTimes) prog.restTimes = [];
+  }
+
+  const currentIdx = prog.exercises.indexOf(exName);
+  const current = (prog.restTimes && prog.restTimes[currentIdx]) || '';
+
+  openModal('Время отдыха', {
+    text: `Для «${exName}». Секунды (10–900). Пусто = 90с по умолчанию.`,
+    inputPlaceholder: 'Например: 120',
+    inputValue: current,
+    inputType: 'number',
+    confirmLabel: 'Сохранить'
+  }, (value) => {
+    if (!prog.restTimes) prog.restTimes = [];
+    if (!value) {
+      prog.restTimes[currentIdx] = null;
+    } else {
+      const n = parseInt(value);
+      if (isNaN(n) || n < 10 || n > 900) {
+        showToast('10–900 секунд');
+        return;
+      }
+      prog.restTimes[currentIdx] = n;
+    }
+    saveData();
+    render();
+    showToast('Сохранено');
+  });
 }
 
 function moveExercise(realIndex, direction) {
